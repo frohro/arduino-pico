@@ -50,7 +50,10 @@ an RAM-based routine, so flash and other peripherals can be accessed.
 
 **NOTE** If you idle core 0 too long, then the USB port can become frozen.
 This is because core 0 manages the USB and needs to service IRQs in a
-timely manner (which it can't do when idled).
+timely manner (which it can't do when idled).  In most cases, you should
+try not to idle a core if you can get by using a mutex.  You can use the
+mutex functions from available in the Raspberry Pi Pico SDK to protect 
+shared memory.
 
 void rp2040.resumeOtherCore()
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -69,7 +72,14 @@ Communicating Between Cores
 The RP2040 provides a hardware FIFO for communicating between cores, but it
 is used exclusively for the idle/resume calls described above.  Instead, please
 use the following functions to access a software-managed, multicore safe
-FIFO.
+FIFO. There is a separate FIFO for each core.  One core writes to it, the other
+reads from it. 
+
+It is important to understand that you can share memory between the two
+cores, but you must ensure no core writes while the other is reading or writing.
+Both cores can read from shared memory at the same time, but only one core can
+write at a time.  You can use mutexes or other synchronization primitives to
+ensure this. 
 
 void rp2040.fifo.push(uint32_t)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -96,4 +106,4 @@ Reads a value from this core's FIFO and places it in dest.  Will return
 int rp2040.fifo.available()
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Returns the number of values available in this core's FIFO.
+Returns the number of values available for this core to read from its FIFO.
